@@ -1,24 +1,29 @@
 package com.app.sms.Service;
 
 import com.app.sms.DTO.MessageDTO;
+import com.app.sms.DTO.PageFilter;
 import com.app.sms.DTO.UserDTO;
 import com.app.sms.Entity.MessageEntity;
 import com.app.sms.Entity.UserEntity;
 import com.app.sms.Repository.MessageRepository;
 import com.app.sms.Repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class MessageService {
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
+
+    @Value("${pagination.defaultPageSize:10}")
+    private int defaultPageSize;
 
     @Autowired
     public MessageService(UserRepository userRepository, MessageRepository messageRepository) {
@@ -34,7 +39,7 @@ public class MessageService {
                     user.get().getPasswordHash()
             );
         else
-            throw new EntityNotFoundException("Нет имени "+name+" пользователя");
+            throw new EntityNotFoundException("Нет имени " + name + " пользователя");
     }
 
     public UserDTO getUser(String name, String pass) throws IllegalArgumentException {
@@ -46,13 +51,19 @@ public class MessageService {
                     user.get().getPasswordHash()
             );
         } else
-            throw new EntityNotFoundException("Нет имени "+name+" пользователя с указанным паролем");
+            throw new EntityNotFoundException("Нет имени " + name + " пользователя с указанным паролем");
     }
 
-    public List<String> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(UserEntity::getName)
-                .toList();
+    public List<String> getAllUsers(PageFilter filter) {
+        int pageSize = filter.pageSize() == null
+                ? this.defaultPageSize : filter.pageSize();
+        int pageNum = filter.pageNumber() == null
+                ? 0 : filter.pageNumber();
+        Pageable pageable = Pageable
+                .ofSize(pageSize)
+                .withPage(pageNum);
+        return userRepository
+                .getUserNamesPaged(pageable);
     }
 
     public List<MessageDTO> getMessagesOfUser(String name) {
@@ -75,7 +86,7 @@ public class MessageService {
 //                        || (a.getFromUserName().equals(nameTo)
 //                        && a.getToUserName().equals(nameFrom)))
 //                .toList();
-        return  messageRepository.getDialogMessages(nameFrom, nameTo)
+        return messageRepository.getDialogMessages(nameFrom, nameTo)
                 .stream().map(a -> new MessageDTO(
                         a.getId(),
                         a.getFromUserName(),
@@ -110,7 +121,7 @@ public class MessageService {
             throw new IllegalArgumentException("Несуществующий пользователь с именем " + toUserName);
 
         if (!userRepository.existsByNameAndPasswordHash(m.getFromUserName(), m.getFromUserPasswordHash()))
-            throw new EntityNotFoundException("Неверное имя пользователя "+fromUserName+" или пароль");
+            throw new EntityNotFoundException("Неверное имя пользователя " + fromUserName + " или пароль");
 
 
         MessageEntity toSave = new MessageEntity(m.getFromUserName(),
@@ -143,24 +154,24 @@ public class MessageService {
 
     public void deleteUser(String name, String password) throws EntityNotFoundException {
         if (!userRepository.existsByNameAndPasswordHash(name, password))
-            throw new EntityNotFoundException("Пользователя с именем " + name +" и указанным паролем не существует");
+            throw new EntityNotFoundException("Пользователя с именем " + name + " и указанным паролем не существует");
         userRepository.deleteById(name);
     }
 
-    public MessageDTO updateMessage(MessageDTO newMessage) {
+    public MessageDTO updateMessage(MessageDTO newMessage) throws EntityNotFoundException, IllegalArgumentException {
         if (!userRepository.existsByNameAndPasswordHash(
                 newMessage.getFromUserName(),
                 newMessage.getFromUserPasswordHash()))
-            throw new EntityNotFoundException("Неверное имя пользователя "+newMessage.getFromUserName()+" или пароль");
+            throw new EntityNotFoundException("Неверное имя пользователя " + newMessage.getFromUserName() + " или пароль");
 
         if (!messageRepository.existsById(newMessage.getId()))
-            throw new EntityNotFoundException("Не существует сообщения с id = "+newMessage.getId());
+            throw new EntityNotFoundException("Не существует сообщения с id = " + newMessage.getId());
 
         MessageEntity old = messageRepository
                 .findById(newMessage.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Не существует сообщения с id = " + newMessage.getId()));
 
-        if (!old.getFromUserName().equals(newMessage.getFromUserName())        )
+        if (!old.getFromUserName().equals(newMessage.getFromUserName()))
             throw new IllegalArgumentException("Нельзя изменить чужое сообщение. Отправитель: " + old.getFromUserName());
 
         messageRepository.updateMessageText(newMessage.getId(), newMessage.getContent());
@@ -174,7 +185,7 @@ public class MessageService {
                 .findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Не существует сообщения с id = " + id));
 
-        if (!old.getFromUserName().equals(userName)        )
+        if (!old.getFromUserName().equals(userName))
             throw new IllegalArgumentException("Нельзя удалить чужое сообщение. Отправитель: " + old.getFromUserName());
 
         messageRepository.deleteById(id);

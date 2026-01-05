@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.app</groupId>
 	<artifactId>sms</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.9.1</version>
 	<name>sms</name>
 	<description>Web text message service like SMS. </description>
 	<url/>

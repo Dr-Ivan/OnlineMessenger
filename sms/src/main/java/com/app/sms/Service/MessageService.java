@@ -5,6 +5,8 @@ import com.app.sms.DTO.PageFilter;
 import com.app.sms.DTO.UserDTO;
 import com.app.sms.Entity.MessageEntity;
 import com.app.sms.Entity.UserEntity;
+import com.app.sms.Mappers.MessageMapper;
+import com.app.sms.Mappers.UserMapper;
 import com.app.sms.Repository.MessageRepository;
 import com.app.sms.Repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -21,23 +23,29 @@ import java.util.Optional;
 public class MessageService {
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
+    private final UserMapper userMapper;
+    private final MessageMapper messageMapper;
 
     @Value("${pagination.defaultPageSize:10}")
     private int defaultPageSize;
 
     @Autowired
-    public MessageService(UserRepository userRepository, MessageRepository messageRepository) {
+    public MessageService(
+            UserRepository userRepository,
+            MessageRepository messageRepository,
+            UserMapper userMapper,
+            MessageMapper messageMapper
+    ) {
         this.userRepository = userRepository;
         this.messageRepository = messageRepository;
+        this.userMapper = userMapper;
+        this.messageMapper = messageMapper;
     }
 
     public UserDTO getUser(String name) throws IllegalArgumentException {
         Optional<UserEntity> user = userRepository.findByName(name);
         if (user.isPresent())
-            return new UserDTO(
-                    user.get().getName(),
-                    user.get().getPasswordHash()
-            );
+            return userMapper.toDTO(user.get());
         else
             throw new EntityNotFoundException("Нет имени " + name + " пользователя");
     }
@@ -46,10 +54,7 @@ public class MessageService {
         if (userRepository.existsByNameAndPasswordHash(name, pass)) {
             Optional<UserEntity> user = userRepository.findByName(name);
             if (user.isEmpty()) throw new IllegalArgumentException("Нет такого имени пользователя");
-            return new UserDTO(
-                    user.get().getName(),
-                    user.get().getPasswordHash()
-            );
+            return userMapper.toDTO(user.get());
         } else
             throw new EntityNotFoundException("Нет имени " + name + " пользователя с указанным паролем");
     }
@@ -67,41 +72,22 @@ public class MessageService {
     }
 
     public List<MessageDTO> getMessagesOfUser(String name) {
-        return messageRepository.findByFromUserName(name)
-                .stream().map(a -> new MessageDTO(
-                        a.getId(),
-                        a.getFromUserName(),
-                        null,
-                        a.getToUserName(),
-                        a.getTime(),
-                        a.getContent()))
+        return messageRepository
+                .findByFromUserName(name)
+                .stream()
+                .map(messageMapper::toDTO)
                 .toList();
     }
 
     public List<MessageDTO> getMessagesBetweenUsers(String nameFrom, String nameTo) {
-//        messages.stream()
-//                .filter(a -> (
-//                        a.getFromUserName().equals(nameFrom)
-//                                && a.getToUserName().equals(nameTo))
-//                        || (a.getFromUserName().equals(nameTo)
-//                        && a.getToUserName().equals(nameFrom)))
-//                .toList();
-        return messageRepository.getDialogMessages(nameFrom, nameTo)
-                .stream().map(a -> new MessageDTO(
-                        a.getId(),
-                        a.getFromUserName(),
-                        null,
-                        a.getToUserName(),
-                        a.getTime(),
-                        a.getContent()))
+        return messageRepository
+                .getDialogMessages(nameFrom, nameTo)
+                .stream()
+                .map(messageMapper::toDTO)
                 .toList();
     }
 
     public List<String> getContactsOfUser(String name) {
-//        messages.stream()
-//                .filter(m -> m.getFromUserName().equals(name) || m.getToUserName().equals(name))
-//                .map(m -> m.getFromUserName().equals(name) ? m.getToUserName() : m.getFromUserName())
-//                .distinct().toList();
         return messageRepository.getContactsOfUser(name);
     }
 
@@ -124,30 +110,24 @@ public class MessageService {
             throw new EntityNotFoundException("Неверное имя пользователя " + fromUserName + " или пароль");
 
 
-        MessageEntity toSave = new MessageEntity(m.getFromUserName(),
-                m.getToUserName(),
-                m.getTime(),
-                m.getContent()
-        );
-
+        MessageEntity toSave = messageMapper.toEntity(m);
         messageRepository.save(toSave);
         m.setId(toSave.getId());
         return m;
     }
 
     public UserDTO addUser(UserDTO user) throws IllegalArgumentException {
-        if (user == null || user.getName() == null || user.getPasswordHash() == null
-                || user.getName().isEmpty() || user.getName().isBlank()
-                || user.getPasswordHash().isEmpty() || user.getPasswordHash().isBlank())
+        if (user == null || user.getName() == null)
+            // остальное уже проверено на этапе валидации при получении запроса
+//                || user.getPasswordHash() == null
+//                || user.getName().isEmpty() || user.getName().isBlank()
+//                || user.getPasswordHash().isEmpty() || user.getPasswordHash().isBlank()
             throw new IllegalArgumentException("Не может быть пользователя c неполным набором атрибутов");
 
         if (userRepository.existsByName(user.getName()))
             throw new IllegalArgumentException("Имя пользователя " + user.getName() + " уже занято");
 
-        UserEntity toSave = new UserEntity(
-                user.getName(),
-                user.getPasswordHash()
-        );
+        UserEntity toSave = userMapper.toEntity(user);
         userRepository.save(toSave);
         return user;
     }

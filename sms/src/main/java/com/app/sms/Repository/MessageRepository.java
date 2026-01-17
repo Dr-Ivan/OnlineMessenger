@@ -40,4 +40,12 @@ public interface MessageRepository extends JpaRepository<MessageEntity, Long> {
             WHERE id = :id
             """, nativeQuery = true)
     int updateMessageText(@Param("id") Long id, @Param("newText") String newText);
+
+    @Transactional
+    @Modifying
+    @Query(value = """
+            DELETE FROM messages
+            WHERE from_user_name = :deletedName OR to_user_name = :deletedName
+            """, nativeQuery = true)
+    int deleteMessagesOfDeletedAccount(@Param("deletedName") String deletedName);
 }

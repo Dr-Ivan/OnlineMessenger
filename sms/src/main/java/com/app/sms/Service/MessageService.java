@@ -136,6 +136,7 @@ public class MessageService {
         if (!userRepository.existsByNameAndPasswordHash(name, password))
             throw new EntityNotFoundException("Пользователя с именем " + name + " и указанным паролем не существует");
         userRepository.deleteById(name);
+        messageRepository.deleteMessagesOfDeletedAccount(name);
     }
 
     public MessageDTO updateMessage(MessageDTO newMessage) throws EntityNotFoundException, IllegalArgumentException {

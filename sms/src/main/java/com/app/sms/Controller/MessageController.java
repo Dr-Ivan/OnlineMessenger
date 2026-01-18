@@ -26,7 +26,7 @@ public class MessageController {
 
 
     @PostMapping
-    public ResponseEntity<MessageDTO> sendMessage (@RequestBody @Valid MessageDTO msg){
+    public ResponseEntity<MessageDTO> sendMessage(@RequestBody @Valid MessageDTO msg) {
         MessageDTO res = messageService.addMessage(msg);
         return ResponseEntity.ok(res);
     }
@@ -35,12 +35,12 @@ public class MessageController {
     public ResponseEntity<List<MessageDTO>> getChatMessages(
             @PathVariable("name1") String id1,
             @PathVariable("name2") String id2
-    ){
+    ) {
         return ResponseEntity.ok(messageService.getMessagesBetweenUsers(id1, id2));
     }
 
     @PutMapping("/edit")
-    public ResponseEntity<MessageDTO> editMessage(@RequestBody @Valid MessageDTO newMessage){
+    public ResponseEntity<MessageDTO> editMessage(@RequestBody @Valid MessageDTO newMessage) {
         // обновить в БД
         newMessage = messageService.updateMessage(newMessage);
         return ResponseEntity.ok(newMessage);
@@ -50,7 +50,8 @@ public class MessageController {
     public void deleteMessage(
             @PathVariable("id") Long messageId,
             @PathVariable("user") String userName
-    ){
+    ) {
         messageService.deleteMessage(userName, messageId);
+        log.info("Deleted message id = {} by user {}", messageId, userName);
     }
 }

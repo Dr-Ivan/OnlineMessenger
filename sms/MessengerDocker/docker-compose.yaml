@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    build:
+      context: .
+      dockerfile: DatabaseDockerfile
+    container_name: "sms-database"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_DB: "sms"
+    # приложение помещено в контейнер вместе с БД, 
+    # поэтому все взаимодействие внутри контейнера
+    # ports:
+    #  - "8085:5432"
+    volumes:
+      - db_data:/var/lib/postgres/sms
+    networks:
+        - messenger-net
+
+  messenger:
+    build:
+      context: ..
+      dockerfile: AppDockerfile
+    container_name: "sms-app"
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - messenger-net
+    depends_on:
+      - db
+
+networks:
+  messenger-net:
+    driver: bridge
+
+volumes:
+  db_data:
+

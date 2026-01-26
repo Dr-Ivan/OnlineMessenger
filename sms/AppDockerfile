@@ -1,0 +1,5 @@
+FROM eclipse-temurin:21-jre
+WORKDIR /messenger
+COPY ./target/*.jar messenger.jar
+EXPOSE 8080
+ENTRYPOINT [ "java", "-jar", "messenger.jar" ]

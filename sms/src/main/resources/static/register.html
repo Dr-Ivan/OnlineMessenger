@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+    
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация</title>
+    <style>
+        body { font-family: Arial; background: #eef; padding: 30px; }
+        .box { max-width: 350px; margin: auto; padding: 20px; background: #fff; border-radius: 8px; }
+        input, button { width: 100%; padding: 10px; margin: 8px 0; }
+        a { display: block; margin-top: 10px; text-align:center; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Регистрация</h2>
+
+    <input id="name" placeholder="Имя">
+    <input id="password" type="password" placeholder="Пароль">
+
+    <button onclick="register()">Создать аккаунт</button>
+    <a href="index.html">Уже есть аккаунт</a>
+</div>
+
+<script src="./scripts/registerScript.js"></script>
+
+</body>
+</html>
